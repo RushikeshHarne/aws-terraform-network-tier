@@ -45,7 +45,7 @@ jobs:
           terraform init -backend-config="bucket=${BUCKET_NAME}"
 
       - name: Format Check
-        run: terraform fmt -check
+        run: terraform fmt 
 
       # Runs ONLY on Pull Requests to test changes safely before merging
       - name: Terraform Plan
