@@ -5,10 +5,22 @@ on:
     branches:
       - main
   pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
 
 jobs:
   terraform:
-    name: "Terraform Apply"
+    name: "Terraform Execution"
     runs-on: ubuntu-latest
 
     steps:
@@ -27,15 +39,27 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: "us-east-1"
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Fetch Backend Bucket & Init
+        run: |
+          BUCKET_NAME=$(aws ssm get-parameter --name "/terraform/remote_state_bucket" --query "Parameter.Value" --output text)
+          terraform init -backend-config="bucket=${BUCKET_NAME}"
 
-      - name: Terraform Format Check
-        run: terraform fmt 
+      - name: Format Check
+        run: terraform fmt -check
 
+      # Runs ONLY on Pull Requests to test changes safely before merging
       - name: Terraform Plan
+        if: github.event_name == 'pull_request'
         run: terraform plan -input=false
 
+      # Runs ONLY when code is pushed/merged to 'main' OR manually triggered with 'apply'
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
         run: terraform apply -auto-approve -input=false
+
+      # Runs ONLY when manually triggered from Actions UI with 'destroy'
+      - name: Terraform Destroy
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
