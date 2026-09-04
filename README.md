@@ -1,4 +1,4 @@
-# 🌐 Network Infrastructure Tier (Repo 2)
+# 🌐 Network Infrastructure Tier
 ---
 ## This repository provisions the foundational AWS Networking layer (VPC, Public/Private Subnets, and Internet Gateway) using Terraform. It integrates with a centralized remote state architecture and uses AWS SSM Parameter Store as a pipeline bridge to pass network configurations to downstream application stacks.
 ---
@@ -68,3 +68,53 @@ SSM Parameter Name                     Description                    Exported V
 /network/vpc_id                 ID of the provisioned main VPC        aws_vpc.main.id             Repo 3(AppTier)
 /network/private_subnet_id      ID of the private subnet              aws_subnet.private.id       Repo 3 (App Tier)
 ```
+## ⚙️ Setup & CI/CD Prerequisites
+---
+### 1. 🔑 GitHub Secrets
+  Ensure the following GitHub Repository Secrets are configured in Settings ➔ Secrets and variables ➔ Actions:
+
+  AWS_ACCESS_KEY_ID: IAM Access Key with VPC and SSM permissions.
+  
+  AWS_SECRET_ACCESS_KEY: Secret Key associated with the AWS Access Key.
+---
+### 2. 🔄 CI/CD Workflow Behavior (deploy.yml)
+The automated workflow operates based on event triggers:
+
+### 🔀 Pull Requests (PR): Runs terraform fmt -check and terraform plan to safely display proposed infrastructure changes without applying them.
+
+### 🔀 Merge to main: Runs terraform apply -auto-approve to provision or update network resources automatically.
+
+### 🎛️ Manual Dispatch (workflow_dispatch):
+
+  Select apply from the GitHub UI to manually trigger deployment.
+  
+  Select destroy from the GitHub UI to safely delete network resources without affecting Repo 1's central state bucket.
+
+---
+## 💻 Local Development Execution
+If running commands locally, configure AWS credentials first:
+```text
+# 1. Fetch Central State Bucket from SSM Parameter Store
+BUCKET_NAME=$(aws ssm get-parameter --name "/terraform/remote_state_bucket" --query "Parameter.Value" --output text)
+
+# 2. Initialize Terraform with dynamic backend configuration
+terraform init -backend-config="bucket=${BUCKET_NAME}"
+
+# 3. Format and Validate
+terraform fmt
+terraform validate
+
+# 4. Plan and Apply Changes
+terraform plan
+terraform apply
+```
+---
+## 💥 Tear Down Instructions
+---
+1. Go to the Actions tab in GitHub.
+
+2. Select Terraform Network Tier Pipeline.
+
+3. Click Run workflow, set the action to destroy, and click Run workflow.
+
+(Alternatively, run terraform destroy locally from your terminal.)
