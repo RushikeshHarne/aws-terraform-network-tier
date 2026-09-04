@@ -16,4 +16,5 @@ output "private_subnet_id" {
 output "discovered_central_bucket" {
   description = "Central S3 bucket dynamically discovered from Repo 1 SSM Parameter"
   value       = data.aws_ssm_parameter.central_state_bucket.value
+  sensitive   = true
 }
