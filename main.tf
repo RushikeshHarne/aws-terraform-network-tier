@@ -1,5 +1,5 @@
-# 1. Dynamically discover the central bucket name from SSM Parameter Store (Repo 1).
-data "aws_ssm_parameter" "central_state_bucket" {
+# 1. Dynamically discover the central bucket name from SSM Parameter Store (Repo 1)
+data "aws_ssm_parameter" "central_state_bucket" 
   name = "/terraform/remote_state_bucket"
 }
 
